@@ -20,7 +20,7 @@
 using namespace c74::min;
 
 
-class jammedPacking : public object<jammedPacking> {
+class jammedPacking : public object<jammedPacking>, public sample_operator<0, 3> {
 private:
 
 
@@ -35,6 +35,8 @@ private:
 	vector<softSphere> _lastNSpheres;
 	vector<softSphere> _sphereSpecies;
 	vector<float> _speciesAbundance;
+	vector<float> _speciesActive;
+
 	vector<softSphere> _candidateList;
 	INT64 _currMarker{ 0 };
 	float _softnessExponent{ 2 };
@@ -61,7 +63,9 @@ public:
 		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
 			_sphereSpecies.push_back(softSphere());
 			_sphereSpecies[i].speciesNo = i;
+			_sphereSpecies[i].diameter = samplerate() / 4;
 			_speciesAbundance.push_back(1);
+			_speciesActive.push_back(0);
 		}
 
 		
@@ -79,39 +83,28 @@ public:
 	}
 
 	inlet<>			in	{ this, "(messages) input"};
+	outlet<>		out1{ this, "pulse for voice 0", "signal" };
+	outlet<>		out2{ this, "pulse for voice 1", "signal" };
+	outlet<>		out3{ this, "pulse for voice 2", "signal" };
 
-	outlet<>		out	{ this, "(voice number) ramp wave", "int" };
 
 
-
-
-	message<> bang { this, "bang", "metro tick in",
-		MIN_FUNCTION {
-			if (m_initialized) {
-				cout << "bang";
-				if (tick()) {
-					out.send(_lastNSpheres.back().speciesNo);
-				}
-
-			}
-			return {};
+	samples<3> operator()()
+	{
+		_currMarker++;
+		if (tryToPlaceObject()) {
+			auto activeVoice = _lastNSpheres.back().speciesNo;
+			_speciesActive[activeVoice] = _speciesActive[activeVoice] == 1 ? 0 : 1;
 		}
-	};
-
-
-	message<> remove{ this, "remove",
-		MIN_FUNCTION{
-		if (args.size() >= 1) {
-			removeSpecies((int)args[0]);
-		}
-	return {};
+		return {{ _speciesActive[0], _speciesActive[1], _speciesActive[2] }};
 	}
-	};
+
 
 	message<> setDiameter{ this, "setDiameter",
 		MIN_FUNCTION{
-		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
-			_sphereSpecies[args[0]].diameter = args[1];
+		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size() && (float)args[1] > 0) {
+			float samples = ((float)args[1] * samplerate())/1000.f;
+			_sphereSpecies[args[0]].diameter = samples;
 		}
 	return {};
 	}
@@ -120,7 +113,7 @@ public:
 	message<> setSoftness{ this, "setSoftness",
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
-			_sphereSpecies[args[0]].softness = args[1];
+			_sphereSpecies[args[0]].softness = (float)args[1];
 		}
 	return {};
 	}
@@ -134,8 +127,6 @@ public:
 	return {};
 	}
 	};
-
-
 
 	message<> exp{ this, "exp",
 		MIN_FUNCTION{
