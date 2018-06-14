@@ -42,4 +42,4 @@ foreach (project_dir ${PROJECT_DIRS})
 	endif ()
 endforeach ()
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/source/MatsuokaEngine_src)
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/source/MatsuokaEngine_src)
