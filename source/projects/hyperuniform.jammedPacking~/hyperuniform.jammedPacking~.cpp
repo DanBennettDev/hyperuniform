@@ -14,6 +14,7 @@
 #include "c74_min.h"
 #define SPECIES_LIST_SIZE 3
 #define STORE_N_SPHERES 1
+#define DEFAULTWIDTH 2756.f
 
 using namespace c74::min;
 
@@ -24,7 +25,7 @@ private:
 
 	struct softSphere {
 		int speciesNo{ 0 };
-		float diameter{ 2756.f };
+		float diameter{ DEFAULTWIDTH };
 		float softness{ 0.0f };
 		float probability{ 0.f };
 		INT64 marker{ 0 };
@@ -39,7 +40,7 @@ private:
 	vector<softSphere> _candidateList;
 	INT64 _currMarker{ 0 };
 	float _softnessExponent{ 2 };
-
+	int counter{ 0 };
 
 
 
@@ -64,7 +65,7 @@ public:
 			_sphereSpecies.push_back(softSphere());
 			_sphereSpecies[i].speciesNo = i;
 			//_sphereSpecies[i].diameter = samplerate() / 16;
-			_sphereSpecies[i].diameter = 2756;
+			_sphereSpecies[i].diameter = DEFAULTWIDTH;
 			_speciesAbundance.push_back(1);
 			_speciesActive.push_back(0);
 		}
@@ -95,17 +96,28 @@ public:
 		_currMarker++;
 		if (tryToPlaceObject()) {
 			auto activeVoice = _lastNSpheres.back().speciesNo;
-			_speciesActive[activeVoice] = _speciesActive[activeVoice] == 1 ? 0 : 1;
+			_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
+			auto expected = _currMarker / (DEFAULTWIDTH*2);
+			auto received = counter;
+			counter++;
 		}
 		return {{ _speciesActive[0], _speciesActive[1], _speciesActive[2] }};
 	}
 
+
+	message<> bang{ this, "bang",
+		MIN_FUNCTION{
+			report();
+	return {};
+	}
+	};
 
 	message<> setDiameter{ this, "setDiameter",
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size() && (float)args[1] > 0) {
 			float samples = ((float)args[1] * samplerate())/1000.f;
 			_sphereSpecies[args[0]].diameter = samples;
+			updateCandidates();
 		}
 	return {};
 	}
@@ -114,7 +126,11 @@ public:
 	message<> setSoftness{ this, "setSoftness",
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
-			_sphereSpecies[args[0]].softness = (float)args[1];
+			float s = (float)args[1];
+			s > 0 ? 0 : s;
+			s < 1 ? 1 : s;
+			_sphereSpecies[args[0]].softness = s;
+			updateCandidates();
 		}
 	return {};
 	}
@@ -123,7 +139,10 @@ public:
 	message<> setAbundance{ this, "setAbundance",
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
-			_speciesAbundance[args[0]] = args[1];
+			float a = args[1];
+			a > 0 ? 0 : a;
+			a < 1 ? 1 : a;
+			_speciesAbundance[args[0]] = a;
 		}
 	return {};
 	}
@@ -191,16 +210,9 @@ public:
 		float probSum = 0;
 		for (int i = 0; i<_candidateList.size(); i++) {
 			if (_candidateList[i].probability != 0 && _nextThreshold < (_candidateList[i].probability + probSum)) {
-				// remove object
+				// remove object and replace
 				softSphere s = _candidateList[i];
-				if (_lastNSpheres.size() > 0) {
-					// DEBUGGING
-					INT64 distance = _currMarker - _lastNSpheres.back().marker;
-					distance = distance;
-				}
 				_candidateList.erase(_candidateList.begin() + i);
-
-				// replace object in candidate list
 				addObjectToCandidateList();
 
 				s.marker = _currMarker;
@@ -248,26 +260,6 @@ public:
 		}
 	}
 
-	void removeSpecies(int speciesNo) {
-		if (speciesNo<_sphereSpecies.size() && _sphereSpecies.size() != 1) {
-			_sphereSpecies.erase(_sphereSpecies.begin() + speciesNo);
-			for (int i = 0; i < _sphereSpecies.size(); i++) {
-				_sphereSpecies[i].speciesNo = i;
-			}
-		}
-	}
-
-	int addSpecies(float diameter, float softness) {
-		if (diameter > 0 && softness > 0 && softness < 1) {
-			softSphere s;
-			s.diameter = diameter;
-			s.softness = softness;
-			_sphereSpecies.push_back(s);
-			s.speciesNo = _sphereSpecies.size();
-			return _sphereSpecies.size() - 1;
-		}
-		return 0;
-	}
 
 	void setGlobalsoftnessExponent(float softnessExp) {
 		softnessExp = softnessExp < 0 ? 0 : softnessExp;
@@ -278,6 +270,41 @@ public:
 
 	float getNextThreshold() {
 		return ((float)rand() / (float)RAND_MAX) * _candidateList.size();
+	}
+
+	void updateCandidates() {
+		for (auto &candidate : _candidateList) {
+			for (auto species : _sphereSpecies) {
+				if (candidate.speciesNo = species.speciesNo) {
+					candidate.diameter = species.diameter;
+					candidate.softness = species.softness;
+				}
+			}
+		}
+	}
+
+	void report() {
+		cout << "diameters: "
+			+ std::to_string(_sphereSpecies[0].diameter) + " "
+			+ std::to_string(_sphereSpecies[1].diameter) + " "
+			+ std::to_string(_sphereSpecies[2].diameter) << endl;
+		cout << "softness: "
+			+ std::to_string(_sphereSpecies[0].softness) + " "
+			+ std::to_string(_sphereSpecies[1].softness) + " "
+			+ std::to_string(_sphereSpecies[2].softness) << endl;
+		cout << "abundances: "
+			+ std::to_string(_speciesAbundance[0]) + " "
+			+ std::to_string(_speciesAbundance[1]) + " "
+			+ std::to_string(_speciesAbundance[2]) << endl;
+
+		cout << "diameters: "
+			+ std::to_string(_candidateList[0].diameter) + " "
+			+ std::to_string(_candidateList[1].diameter) + " "
+			+ std::to_string(_candidateList[2].diameter) << endl;
+
+		cout << "lastOne: "
+			+ std::to_string(_lastNSpheres.back().diameter) + " ("
+			+ std::to_string(_lastNSpheres.size()) + ") "<< endl;
 	}
 
 };
