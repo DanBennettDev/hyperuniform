@@ -35,7 +35,7 @@ private:
 	vector<softSphere> _sphereSpecies;
 	vector<float> _speciesAbundance;
 	vector<float> _speciesActive;
-	float _nextThreshold;
+	float _pFire;
 
 	vector<softSphere> _candidateList;
 	INT64 _currMarker{ 0 };
@@ -64,13 +64,12 @@ public:
 		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
 			_sphereSpecies.push_back(softSphere());
 			_sphereSpecies[i].speciesNo = i;
-			//_sphereSpecies[i].diameter = samplerate() / 16;
 			_sphereSpecies[i].diameter = DEFAULTWIDTH;
 			_speciesAbundance.push_back(1);
 			_speciesActive.push_back(0);
 		}
 
-		_nextThreshold = getNextThreshold();
+		_pFire = (float)rand() / (float)RAND_MAX;
 
 		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
 			addObjectToCandidateList();
@@ -201,30 +200,35 @@ public:
 
 
 	bool tryToPlaceObject() {
-		// set probability thresholds on each of the candidate objects
+		// set probabilities on each of the candidate objects
+		float pMax = 0, pSum=0;
 		for (auto &sphere : _candidateList) {
 			sphere.probability = 1.0f - sumPlacementResistance(sphere.diameter, sphere.softness);
+			pMax = sphere.probability > pMax ? sphere.probability : sphere.probability;
+			pSum += sphere.probability;
 		}
+		if (_pFire < pMax) {
+			//weighted random voice selection
+			float pSelect = pSum * _pFire;
+			float pCum=0;
+			for (int i = 0; i<_candidateList.size(); i++) {
+				if (_candidateList[i].probability != 0 && pSelect < (_candidateList[i].probability + pCum)) {
+					// remove object and replace
+					softSphere s = _candidateList[i];
+					_candidateList.erase(_candidateList.begin() + i);
+					addObjectToCandidateList();
 
-		//float result = ((float)rand() / (float)RAND_MAX) * _candidateList.size();
-		float probSum = 0;
-		for (int i = 0; i<_candidateList.size(); i++) {
-			if (_candidateList[i].probability != 0 && _nextThreshold < (_candidateList[i].probability + probSum)) {
-				// remove object and replace
-				softSphere s = _candidateList[i];
-				_candidateList.erase(_candidateList.begin() + i);
-				addObjectToCandidateList();
-
-				s.marker = _currMarker;
-				_lastNSpheres.push_back(s);
-				if (_lastNSpheres.size() > STORE_N_SPHERES) {
-					_lastNSpheres.erase(_lastNSpheres.begin());
+					s.marker = _currMarker;
+					_lastNSpheres.push_back(s);
+					if (_lastNSpheres.size() > STORE_N_SPHERES) {
+						_lastNSpheres.erase(_lastNSpheres.begin());
+					}
 				}
-
-				_nextThreshold = getNextThreshold();
-				return true;
+				pCum += _candidateList[i].probability;
 			}
-			probSum += _candidateList[i].probability;
+
+			_pFire = (float)rand() / (float)RAND_MAX;
+			return true;
 		}
 		return false;
 
@@ -269,7 +273,7 @@ public:
 	}
 
 	float getNextThreshold() {
-		return ((float)rand() / (float)RAND_MAX) * _candidateList.size();
+		return ((float)rand() / (float)RAND_MAX); // *_candidateList.size();
 	}
 
 	void updateCandidates() {
