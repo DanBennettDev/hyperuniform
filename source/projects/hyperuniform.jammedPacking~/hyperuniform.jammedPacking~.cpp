@@ -7,15 +7,13 @@
 /*
 	TODO:
 		Allow changing number of species
-		make signal rate
+		Misses some triggers on fast rhythms / small spheres
 */
 
 
 #include "c74_min.h"
-#define CANDIDATE_LIST_SIZE 16
 #define SPECIES_LIST_SIZE 3
-
-#define STORE_N_SPHERES 16
+#define STORE_N_SPHERES 1
 
 using namespace c74::min;
 
@@ -26,8 +24,8 @@ private:
 
 	struct softSphere {
 		int speciesNo{ 0 };
-		float diameter{ 8.f };
-		float softness{ 0.f };
+		float diameter{ 2756.f };
+		float softness{ 0.0f };
 		float probability{ 0.f };
 		INT64 marker{ 0 };
 	};
@@ -36,6 +34,7 @@ private:
 	vector<softSphere> _sphereSpecies;
 	vector<float> _speciesAbundance;
 	vector<float> _speciesActive;
+	float _nextThreshold;
 
 	vector<softSphere> _candidateList;
 	INT64 _currMarker{ 0 };
@@ -58,23 +57,25 @@ public:
 
 		cout << "started" << endl;
 
-		srand((unsigned)time(NULL));
+		//srand((unsigned)time(NULL));
+		srand(1);
 
 		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
 			_sphereSpecies.push_back(softSphere());
 			_sphereSpecies[i].speciesNo = i;
-			_sphereSpecies[i].diameter = samplerate() / 4;
+			//_sphereSpecies[i].diameter = samplerate() / 16;
+			_sphereSpecies[i].diameter = 2756;
 			_speciesAbundance.push_back(1);
 			_speciesActive.push_back(0);
 		}
 
-		
+		_nextThreshold = getNextThreshold();
 
-		for (int i = 0; i < CANDIDATE_LIST_SIZE; i++) {
+		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
 			addObjectToCandidateList();
 		}
 
-
+		
 		m_initialized = true;
 	}
 
@@ -147,35 +148,24 @@ public:
 		float giveA = diameterA * softnessA;
 		float giveB = diameterB * softnessB;
 
-		// 
-		float diameter1, diameter2, give1, give2;
-		if ((diameterA * softnessA) > (diameterB * softnessB)) {
-			diameter1 = diameterA;
-			diameter2 = diameterB;
-			give1 = giveA;
-			give2 = giveB;
-		}
-		else {
-			diameter1 = diameterB;
-			diameter2 = diameterA;
-			give1 = giveB;
-			give2 = giveA;
-		}
-
-		float compression = (diameter1 + diameter2) - distance;
-		if (compression < 0) {
+		float compression = (diameterA + diameterB) - distance;
+		if (compression <= 0) {
 			return 0;
 		}
 		// if placement would cause greater compression than the "give" of the spheres, resistance is 100%
-		if (compression > give1 + give2) {
+		if (compression > giveA + giveB) {
 			return 1;
 		}
-
-		float compressionRatio = pow(give1, softnessExp) / pow(give2, softnessExp);
-		float c1 = compressionRatio * compression;
-
-		return  2 * pow(c1 / give1, softnessExp);
+		// share the compression between the two spheres
+		// note: incredibly crude! Not realistic! Cheap! Probably good enough for our purposes!
+		float compressionRatio = giveA / (giveA+giveB);
+		float cA = compressionRatio * compression;
+		float cB = (1.f - compressionRatio) * compression;
+		// calculate total resistance to compression
+		return  (pow(cA / giveA, softnessExp) + pow(cB/giveA, softnessExp))/2.0f;
 	}
+
+
 
 
 	// sum resistance on current placement from all spheres in scope
@@ -190,13 +180,6 @@ public:
 		return resistance > 1 ? 1 : resistance;
 	}
 
-	bool tick() {
-		_currMarker++;
-		bool newEvent = tryToPlaceObject();
-		return newEvent;
-	}
-
-
 
 	bool tryToPlaceObject() {
 		// set probability thresholds on each of the candidate objects
@@ -204,12 +187,17 @@ public:
 			sphere.probability = 1.0f - sumPlacementResistance(sphere.diameter, sphere.softness);
 		}
 
-		float result = ((float)rand() / (float)RAND_MAX) * _candidateList.size();
+		//float result = ((float)rand() / (float)RAND_MAX) * _candidateList.size();
 		float probSum = 0;
 		for (int i = 0; i<_candidateList.size(); i++) {
-			if (_candidateList[i].probability != 0 && result < (_candidateList[i].probability + probSum)) {
+			if (_candidateList[i].probability != 0 && _nextThreshold < (_candidateList[i].probability + probSum)) {
 				// remove object
 				softSphere s = _candidateList[i];
+				if (_lastNSpheres.size() > 0) {
+					// DEBUGGING
+					INT64 distance = _currMarker - _lastNSpheres.back().marker;
+					distance = distance;
+				}
 				_candidateList.erase(_candidateList.begin() + i);
 
 				// replace object in candidate list
@@ -220,6 +208,8 @@ public:
 				if (_lastNSpheres.size() > STORE_N_SPHERES) {
 					_lastNSpheres.erase(_lastNSpheres.begin());
 				}
+
+				_nextThreshold = getNextThreshold();
 				return true;
 			}
 			probSum += _candidateList[i].probability;
@@ -228,6 +218,11 @@ public:
 
 	}
 
+	bool tick() {
+		_currMarker++;
+		bool newEvent = tryToPlaceObject();
+		return newEvent;
+	}
 
 	// when an object is placed, replenish the candidate list (from object species list)
 	// try different rules out here - e.g. random / ordered
@@ -281,6 +276,9 @@ public:
 		_softnessExponent = softnessExp;
 	}
 
+	float getNextThreshold() {
+		return ((float)rand() / (float)RAND_MAX) * _candidateList.size();
+	}
 
 };
 
