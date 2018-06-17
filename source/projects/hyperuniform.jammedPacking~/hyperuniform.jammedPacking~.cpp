@@ -6,20 +6,22 @@
 
 /*
 	TODO:
-		Allow changing number of species
-		Misses some triggers on fast rhythms / small spheres
+		make each voice directly triggerable
+		send triggers not inversion (width controllable by user)
+		velocity from (inverse)resistance
 */
 
 
 #include "c74_min.h"
-#define SPECIES_LIST_SIZE 3
+//#define SPECIES_LIST_SIZE 3
 #define STORE_N_SPHERES 1
 #define DEFAULTWIDTH 2756.f
+#define MAXVOICES 16
 
 using namespace c74::min;
 
 
-class jammedPacking : public object<jammedPacking>, public sample_operator<0, 3> {
+class jammedPacking : public object<jammedPacking>, public vector_operator<> {
 private:
 
 
@@ -45,7 +47,7 @@ private:
 
 
 public:
-	bool m_initialized{ false };
+	bool _initialized{ false };
 
 	MIN_DESCRIPTION { "Rhythm generator based on the idea of hyperuniformity in the disordered jammed packing of soft spheres" };
 	MIN_TAGS		{	"rhythm, generator"		};
@@ -54,54 +56,87 @@ public:
 
 	jammedPacking(const atoms& args = {})
 	{
-		m_initialized = false;
+		_initialized = false;
 
 		cout << "started" << endl;
 
 		//srand((unsigned)time(NULL));
 		srand(1);
 
-		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
+		int voices = args.size() >= 1 ? (int)args[0] : 3;
+		voices = voices < 1 ? 1 : voices;
+		voices = voices > MAXVOICES ? MAXVOICES : voices;
+
+		// set up nodes and ins/outs for them
+		for (int voice = 0; voice < voices; ++voice) {
 			_sphereSpecies.push_back(softSphere());
-			_sphereSpecies[i].speciesNo = i;
-			_sphereSpecies[i].diameter = DEFAULTWIDTH;
+			_sphereSpecies[voice].speciesNo = voice;
+			_sphereSpecies[voice].diameter = DEFAULTWIDTH;
 			_speciesAbundance.push_back(1);
 			_speciesActive.push_back(0);
+
+			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) freq input " + voice));
+			_outs.push_back(std::make_unique<outlet<>>(this, "(signal) signal output " + voice, "signal"));
 		}
 
 		_pFire = (float)rand() / (float)RAND_MAX;
 
-		for (int i = 0; i < SPECIES_LIST_SIZE; i++) {
+		// this needs to be done after all the species have been added
+		for (int i = 0; i < voices; i++) {
 			addObjectToCandidateList();
 		}
 
-		
-		m_initialized = true;
+		_initialized = true;
 	}
 
 	~jammedPacking(){
 		// object-specific tear-down code here
 	}
 
-	inlet<>			in	{ this, "(messages) input"};
-	outlet<>		out1{ this, "pulse for voice 0", "signal" };
-	outlet<>		out2{ this, "pulse for voice 1", "signal" };
-	outlet<>		out3{ this, "pulse for voice 2", "signal" };
+	//inlet<>			in	{ this, "(messages) input"};
+	//outlet<>		out1{ this, "pulse for voice 0", "signal" };
+	//outlet<>		out2{ this, "pulse for voice 1", "signal" };
+	//outlet<>		out3{ this, "pulse for voice 2", "signal" };
+
+	vector< unique_ptr<inlet<>> >			_ins;				///< this object's ins
+	vector< unique_ptr<outlet<>> >			_outs;				///< this object's outs
+
+	//samples<3> operator()()
+	//{
+	//	_currMarker++;
+	//	if (tryToPlaceObject()) {
+	//		auto activeVoice = _lastNSpheres.back().speciesNo;
+	//		_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
+	//		auto expected = _currMarker / (DEFAULTWIDTH*2);
+	//		auto received = counter;
+	//		counter++;
+	//	}
+	//	return {{ _speciesActive[0], _speciesActive[1], _speciesActive[2] }};
+	//}
 
 
-
-	samples<3> operator()()
+	void operator()(audio_bundle input, audio_bundle output)
 	{
-		_currMarker++;
-		if (tryToPlaceObject()) {
-			auto activeVoice = _lastNSpheres.back().speciesNo;
-			_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
-			auto expected = _currMarker / (DEFAULTWIDTH*2);
-			auto received = counter;
-			counter++;
-		}
-		return {{ _speciesActive[0], _speciesActive[1], _speciesActive[2] }};
+		if (_initialized) {
+			// For each frame in the vector calc each channel
+			for (auto frame = 0; frame<input.frame_count(); ++frame) {
+				_currMarker++;
+				if (tryToPlaceObject()) {
+					auto activeVoice = _lastNSpheres.back().speciesNo;
+					_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
+					auto expected = _currMarker / (DEFAULTWIDTH * 2);
+					auto received = counter;
+					counter++;
+				}
+
+				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
+						output.samples(channel)[frame] = _speciesActive[channel];
+					}
+				}
+			}
+
 	}
+
 
 
 	message<> bang{ this, "bang",

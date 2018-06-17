@@ -17,16 +17,20 @@ TEST_CASE("calculates a vector when provided valid values") {
 
 	// create an impulse buffer to process
 	const int		buffersize = 256;
-	sample_vector	impulse(buffersize * 10000);
-	std::fill_n(impulse.begin(), buffersize, 0.0);
-	impulse[0] = 1.0;
+	const int		channels = 256;
 
+	double** samplesIn = new double*[channels];
+	double** samplesOut = new double*[channels];
 
-	// run the calculations
-	for (auto x : impulse) {
-		auto y = my_object();
-		//output.push_back(y);
+	for (int i = 0; i < channels; ++i) {
+		samplesIn[i] = new double[buffersize];
+		samplesOut[i] = new double[buffersize];
 	}
+
+	audio_bundle in(samplesIn, 3, 256);
+	audio_bundle out(samplesOut, 3, 256);
+
+	my_object(in, out);
 
 
 	REQUIRE ( true );
