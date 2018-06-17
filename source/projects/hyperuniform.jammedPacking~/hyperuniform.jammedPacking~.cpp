@@ -35,6 +35,7 @@ private:
 
 	vector<softSphere> _lastNSpheres;
 	vector<softSphere> _sphereSpecies;
+	vector<float> _prevIn;
 	vector<float> _speciesAbundance;
 	vector<float> _speciesActive;
 	float _pFire;
@@ -73,11 +74,14 @@ public:
 			_sphereSpecies[voice].speciesNo = voice;
 			_sphereSpecies[voice].diameter = DEFAULTWIDTH;
 			_speciesAbundance.push_back(1);
+			_prevIn.push_back(0);
 			_speciesActive.push_back(0);
 
 			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) freq input " + voice));
 			_outs.push_back(std::make_unique<outlet<>>(this, "(signal) signal output " + voice, "signal"));
 		}
+
+		_lastNSpheres.push_back(softSphere());
 
 		_pFire = (float)rand() / (float)RAND_MAX;
 
@@ -121,7 +125,15 @@ public:
 			// For each frame in the vector calc each channel
 			for (auto frame = 0; frame<input.frame_count(); ++frame) {
 				_currMarker++;
-				if (tryToPlaceObject()) {
+				bool objectPlaced = false;
+
+				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
+					if (input.samples(channel)[frame] > 0.5 &&  _prevIn[channel] < 0.5) {
+						placeObject(channel);
+						objectPlaced = true;
+					}
+				}
+				if (!objectPlaced || tryToPlaceObject()) {
 					auto activeVoice = _lastNSpheres.back().speciesNo;
 					_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
 					auto expected = _currMarker / (DEFAULTWIDTH * 2);
@@ -130,9 +142,11 @@ public:
 				}
 
 				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
+						_prevIn[channel] = input.samples(channel)[frame];
 						output.samples(channel)[frame] = _speciesActive[channel];
 					}
 				}
+				
 			}
 
 	}
@@ -233,7 +247,6 @@ public:
 		return resistance > 1 ? 1 : resistance;
 	}
 
-
 	bool tryToPlaceObject() {
 		// set probabilities on each of the candidate objects
 		float pMax = 0, pSum=0;
@@ -248,16 +261,7 @@ public:
 			float pCum=0;
 			for (int i = 0; i<_candidateList.size(); i++) {
 				if (_candidateList[i].probability != 0 && pSelect < (_candidateList[i].probability + pCum)) {
-					// remove object and replace
-					softSphere s = _candidateList[i];
-					_candidateList.erase(_candidateList.begin() + i);
-					addObjectToCandidateList();
-
-					s.marker = _currMarker;
-					_lastNSpheres.push_back(s);
-					if (_lastNSpheres.size() > STORE_N_SPHERES) {
-						_lastNSpheres.erase(_lastNSpheres.begin());
-					}
+					placeObject(i);
 				}
 				pCum += _candidateList[i].probability;
 			}
@@ -266,8 +270,20 @@ public:
 			return true;
 		}
 		return false;
-
 	}
+
+	void placeObject(int voice) {
+		// remove object and replace
+		softSphere s = _candidateList[voice];
+		_candidateList.erase(_candidateList.begin() + voice);
+		addObjectToCandidateList();
+		s.marker = _currMarker;
+		_lastNSpheres.push_back(s);
+		if (_lastNSpheres.size() > STORE_N_SPHERES) {
+			_lastNSpheres.erase(_lastNSpheres.begin());
+		}
+	}
+
 
 	bool tick() {
 		_currMarker++;

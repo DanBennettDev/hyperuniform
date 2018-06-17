@@ -17,7 +17,7 @@ TEST_CASE("calculates a vector when provided valid values") {
 
 	// create an impulse buffer to process
 	const int		buffersize = 256;
-	const int		channels = 256;
+	const int		channels = 3;
 
 	double** samplesIn = new double*[channels];
 	double** samplesOut = new double*[channels];
@@ -27,8 +27,8 @@ TEST_CASE("calculates a vector when provided valid values") {
 		samplesOut[i] = new double[buffersize];
 	}
 
-	audio_bundle in(samplesIn, 3, 256);
-	audio_bundle out(samplesOut, 3, 256);
+	audio_bundle in(samplesIn, channels, buffersize);
+	audio_bundle out(samplesOut, channels, buffersize);
 
 	my_object(in, out);
 
