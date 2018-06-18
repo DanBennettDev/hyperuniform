@@ -9,6 +9,9 @@
 		make each voice directly triggerable
 		send triggers not inversion (width controllable by user)
 		velocity from (inverse)resistance
+		add hard core, not acted on by "force" except in drive mode
+
+		Make multi-level version, where different species don't affect one another
 */
 
 
@@ -29,6 +32,7 @@ private:
 		int speciesNo{ 0 };
 		float diameter{ DEFAULTWIDTH };
 		float softness{ 0.0f };
+		float driveEvent{ 0.0f };
 		float probability{ 0.f };
 		INT64 marker{ 0 };
 	};
@@ -39,6 +43,7 @@ private:
 	vector<float> _speciesAbundance;
 	vector<float> _speciesActive;
 	float _pFire;
+	int _drive{ 0 };
 
 	vector<softSphere> _candidateList;
 	INT64 _currMarker{ 0 };
@@ -77,12 +82,15 @@ public:
 			_prevIn.push_back(0);
 			_speciesActive.push_back(0);
 
-			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) freq input " + voice));
+			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) drive input " + voice));
+			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) softness input " + voice));
+
 			_outs.push_back(std::make_unique<outlet<>>(this, "(signal) signal output " + voice, "signal"));
+
 		}
 
 		_lastNSpheres.push_back(softSphere());
-
+		_lastNSpheres.front().marker = 1;
 		_pFire = (float)rand() / (float)RAND_MAX;
 
 		// this needs to be done after all the species have been added
@@ -127,13 +135,42 @@ public:
 				_currMarker++;
 				bool objectPlaced = false;
 
-				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
-					if (input.samples(channel)[frame] > 0.5 &&  _prevIn[channel] < 0.5) {
-						placeObject(channel);
-						objectPlaced = true;
+				// if drive is in hard/forced mode
+				if (_drive==1) {
+					// if we have received a trigger force an event
+					for (int channel = 0; channel < _sphereSpecies.size() ; channel++) {
+						if (input.samples(channel)[frame] > 0.5 &&  _prevIn[channel] < 0.5) {
+							placeObject(channel);
+							objectPlaced = true;
+						}
+						else {
+							//otherwise get softness values ready for normal operation
+							for (auto &c : _candidateList) {
+								auto softness = input.samples((c.speciesNo * 2) + 1)[frame];
+								softness = softness < 1.0 ? softness : 1.0;
+								softness = softness > 0 ? softness : 0.0;
+								c.softness = softness;
+							}
+						}
 					}
+				} else {
+					// if drive is in nudge mode
+					for (auto &c : _candidateList) {
+						auto softness = input.samples((c.speciesNo * 2) + 1)[frame];
+						softness = softness < 1.0 ? softness : 1.0;
+						softness = softness > 0 ? softness : 0.0;
+						c.softness = softness;
+
+						auto drive = input.samples(c.speciesNo * 2)[frame];
+						drive = drive < 1.0 ? drive : 1.0;
+						drive = drive > 0 ? drive : 0.0;
+						c.driveEvent = drive;
+					}
+
 				}
-				if (!objectPlaced || tryToPlaceObject()) {
+
+
+				if (objectPlaced || tryToPlaceObject()) {
 					auto activeVoice = _lastNSpheres.back().speciesNo;
 					_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
 					auto expected = _currMarker / (DEFAULTWIDTH * 2);
@@ -171,18 +208,18 @@ public:
 	}
 	};
 
-	message<> setSoftness{ this, "setSoftness",
-		MIN_FUNCTION{
-		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
-			float s = (float)args[1];
-			s > 0 ? 0 : s;
-			s < 1 ? 1 : s;
-			_sphereSpecies[args[0]].softness = s;
-			updateCandidates();
-		}
-	return {};
-	}
-	};
+	//message<> setSoftness{ this, "setSoftness",
+	//	MIN_FUNCTION{
+	//	if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
+	//		float s = (float)args[1];
+	//		s > 0 ? 0 : s;
+	//		s < 1 ? 1 : s;
+	//		_sphereSpecies[args[0]].softness = s;
+	//		updateCandidates();
+	//	}
+	//return {};
+	//}
+	//};
 
 	message<> setAbundance{ this, "setAbundance",
 		MIN_FUNCTION{
@@ -205,10 +242,23 @@ public:
 	}
 	};
 
+	message<> drive{ this, "drive",
+		MIN_FUNCTION{
+			if (args.size() >= 1) {
+				_drive = (int)args[0];
+				if (_drive) {
+					for (auto &sphere : _sphereSpecies) {
+						sphere.driveEvent = 0;
+					}
+				}
+			}
+	return {};
+	}
+	};
 
 
-	// sum the resistive force from one other sphere on this sphere
-	float placementResistance(float diameterA, float diameterB, float softnessA, float softnessB,
+	// sum the resistive driveEvent from one other sphere on this sphere
+	float placementResistance(float diameterA, float diameterB, float softnessA, float softnessB, float driveEvent,
 		float distance, float softnessExp)
 	{
 		// calc amount of "give" in the objects' fields
@@ -229,20 +279,18 @@ public:
 		float cA = compressionRatio * compression;
 		float cB = (1.f - compressionRatio) * compression;
 		// calculate total resistance to compression
-		return  (pow(cA / giveA, softnessExp) + pow(cB/giveA, softnessExp))/2.0f;
+		return  (1-driveEvent) * (pow(cA / giveA, softnessExp) + pow(cB/giveA, softnessExp))/2.0f;
 	}
 
 
-
-
 	// sum resistance on current placement from all spheres in scope
-	float sumPlacementResistance(float thisDiameter, float thissoftness)
+	float sumPlacementResistance(float thisDiameter, float thissoftness, float driveEvent)
 	{
 		float resistance = 0;
 		for (auto s : _lastNSpheres) {
 			INT64 distance = _currMarker - s.marker;
 			resistance += placementResistance(thisDiameter, s.diameter, thissoftness,
-				s.softness, (float)distance, _softnessExponent);
+				s.softness, driveEvent, (float)distance, _softnessExponent);
 		}
 		return resistance > 1 ? 1 : resistance;
 	}
@@ -251,7 +299,7 @@ public:
 		// set probabilities on each of the candidate objects
 		float pMax = 0, pSum=0;
 		for (auto &sphere : _candidateList) {
-			sphere.probability = 1.0f - sumPlacementResistance(sphere.diameter, sphere.softness);
+			sphere.probability = 1.0f - sumPlacementResistance(sphere.diameter, sphere.softness, sphere.driveEvent);
 			pMax = sphere.probability > pMax ? sphere.probability : sphere.probability;
 			pSum += sphere.probability;
 		}

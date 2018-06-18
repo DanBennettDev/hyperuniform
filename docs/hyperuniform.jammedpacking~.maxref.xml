@@ -40,17 +40,17 @@
 			<description></description>
 		</method>
 
+		<method name='setAbundance'>
+			<digest></digest>
+			<description></description>
+		</method>
+
 		<method name='exp'>
 			<digest></digest>
 			<description></description>
 		</method>
 
-		<method name='setSoftness'>
-			<digest></digest>
-			<description></description>
-		</method>
-
-		<method name='setAbundance'>
+		<method name='drive'>
 			<digest></digest>
 			<description></description>
 		</method>

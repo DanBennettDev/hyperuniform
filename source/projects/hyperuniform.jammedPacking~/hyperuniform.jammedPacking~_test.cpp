@@ -25,6 +25,9 @@ TEST_CASE("calculates a vector when provided valid values") {
 	for (int i = 0; i < channels; ++i) {
 		samplesIn[i] = new double[buffersize];
 		samplesOut[i] = new double[buffersize];
+		for (int j = 0; j < buffersize; j++) {
+			samplesIn[i][j] = i==0? 1 : 0;
+		}
 	}
 
 	audio_bundle in(samplesIn, channels, buffersize);
