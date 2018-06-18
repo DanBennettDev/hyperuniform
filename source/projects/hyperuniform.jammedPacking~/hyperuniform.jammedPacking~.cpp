@@ -6,11 +6,9 @@
 
 /*
 	TODO:
-		send triggers not inversion (width controllable by user)
 		velocity from (inverse)resistance
 		add hard core, not acted on by "force" except in drive mode
-
-		Make multi-level version, where different species don't affect one another
+		Make multi-level version, where different species don't affect one another (bringing this closer to the jammed packing paper https://arxiv.org/pdf/1402.6058)
 */
 
 
