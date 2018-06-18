@@ -1,5 +1,10 @@
 # What is it?
-An external for MAX/MSP. A signal rate, "stochastic" rhythm generator which retains a little more than usual of that word's original sense of "aiming at a mark". Also, it's an impressionistic* take on "hyperuniformity in the disordered, jammed, packing of soft spheres" as outlined in [this paper](https://arxiv.org/pdf/1402.6058). As to why "impressionistic" see the section "Hyperuniform" below.
+
+- An external for MAX/MSP. 
+
+- A signal rate, "stochastic" rhythm generator. 
+
+- An impressionistic take on "hyperuniformity in the disordered, jammed, packing of soft spheres" as outlined in [this paper](https://arxiv.org/pdf/1402.6058). (As to why "impressionistic" see the section "Hyperuniform" below.)
 
 The MAX patch is currently a bit cryptic. I need to document it all better. Please bear with me. My current research is not in computer music and I have a couple of other projects I also need to finish up.
 
