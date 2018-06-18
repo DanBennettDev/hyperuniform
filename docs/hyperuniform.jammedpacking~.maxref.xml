@@ -30,6 +30,11 @@
 
 	<methodlist>
 
+		<method name='trigger'>
+			<digest></digest>
+			<description></description>
+		</method>
+
 		<method name='bang'>
 			<digest></digest>
 			<description></description>

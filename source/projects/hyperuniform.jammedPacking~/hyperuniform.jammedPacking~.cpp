@@ -6,7 +6,6 @@
 
 /*
 	TODO:
-		make each voice directly triggerable
 		send triggers not inversion (width controllable by user)
 		velocity from (inverse)resistance
 		add hard core, not acted on by "force" except in drive mode
@@ -20,6 +19,7 @@
 #define STORE_N_SPHERES 1
 #define DEFAULTWIDTH 2756.f
 #define MAXVOICES 16
+#define TRIGGERWIDTH 100
 
 using namespace c74::min;
 
@@ -42,6 +42,8 @@ private:
 	vector<float> _prevIn;
 	vector<float> _speciesAbundance;
 	vector<float> _speciesActive;
+	vector<int> _triggers;
+	int _trigLen{ TRIGGERWIDTH };
 	float _pFire;
 	int _drive{ 0 };
 
@@ -81,6 +83,8 @@ public:
 			_speciesAbundance.push_back(1);
 			_prevIn.push_back(0);
 			_speciesActive.push_back(0);
+			_trigLen = TRIGGERWIDTH;
+			_triggers.push_back(0);
 
 			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) drive input " + voice));
 			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) softness input " + voice));
@@ -172,15 +176,25 @@ public:
 
 				if (objectPlaced || tryToPlaceObject()) {
 					auto activeVoice = _lastNSpheres.back().speciesNo;
-					_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
+					//_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
+					_triggers[activeVoice] = _trigLen;
 					auto expected = _currMarker / (DEFAULTWIDTH * 2);
 					auto received = counter;
 					counter++;
 				}
 
 				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
-						_prevIn[channel] = input.samples(channel)[frame];
-						output.samples(channel)[frame] = _speciesActive[channel];
+					_prevIn[channel] = input.samples(channel)[frame];
+
+					if (_triggers[channel] > 0) { 
+						output.samples(channel)[frame] = 1;
+						_triggers[channel] --; 
+					}
+					else {
+						output.samples(channel)[frame] = 0;
+					}
+						
+						//output.samples(channel)[frame] = _speciesActive[channel];
 					}
 				}
 				
@@ -207,6 +221,16 @@ public:
 	return {};
 	}
 	};
+
+	message<> trigger{ this, "trigger",
+		MIN_FUNCTION{
+		if (args.size() >= 1 && (int)args[0] > 0) {
+			_trigLen = (int)args[0];
+		}
+	return {};
+	}
+	};
+
 
 	//message<> setSoftness{ this, "setSoftness",
 	//	MIN_FUNCTION{
