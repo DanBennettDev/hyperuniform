@@ -6,8 +6,8 @@
 
 <c74object name='hyperuniform.jammedpacking~' category='rhythm,  generator'>
 
-	<digest>Rhythm generator based on the idea of hyperuniformity in the disordered jammed packing of soft spheres </digest>
-	<description>Rhythm generator based on the idea of hyperuniformity in the disordered jammed packing of soft spheres </description>
+	<digest>Rhythm generator based on the stochastic jammed packing of soft spheres </digest>
+	<description>Rhythm generator based on the stochastic jammed packing of soft spheres </description>
 
 
 	<!--METADATA-->
@@ -73,7 +73,7 @@
 	<!--RELATED-->
 
 	<seealsolist>
-		<seealso name='phasor~' />
+		<seealso name='metro' />
 	</seealsolist>
 
 
