@@ -7,7 +7,7 @@
 - An impressionistic take on the idea of "hyperuniformity in the disordered, jammed, packing of soft spheres" as outlined in [this paper](https://arxiv.org/pdf/1402.6058). (As to why "impressionistic" see the section "Hyperuniform" below.)
 
 ### DISCLAIMER
-Sorry - the MAX patch is currently a bit cryptic and weird, and nothing is documented very well. I put this together very quickly and I will have no time over the next few weeks to make it easier to understand. It isn't a complicated algorithm, but the reasoning, controls and possibilities might be opaque. If you are lost, apologies, and please bear with me, I'll improve this when I have time. My current research is not in computer music and I have a couple of other projects I need to finish up more urgently.
+Sorry - the MAX patch is currently a bit cryptic and weird, and nothing is documented very well. I put this together very quickly and I will have no time over the next few weeks to make it easier to understand. It isn't a complicated algorithm, but the reasoning, controls and possibilities might be opaque. If you are lost, then accept my apologies, and please bear with me, I'll improve this when I have time. My current research is not in computer music and I have a couple of other projects I need to finish up more urgently.
 
 # What now?
 The result is an (I think) interesting, controllable, stochastic rhythm generator. I think the best way to think of it is as follows.
