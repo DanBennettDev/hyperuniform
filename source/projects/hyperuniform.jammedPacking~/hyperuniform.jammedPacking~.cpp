@@ -1,5 +1,5 @@
 /// @file	
-///	@ingroup 	CPG
+///	@ingroup 	HYPERUNIFORM
 /// @author		Dan Bennett
 ///	@license	Usage of this file and its contents is governed by the MIT License
 
@@ -55,10 +55,10 @@ private:
 public:
 	bool _initialized{ false };
 
-	MIN_DESCRIPTION { "Rhythm generator based on the idea of hyperuniformity in the disordered jammed packing of soft spheres" };
+	MIN_DESCRIPTION { "Rhythm generator based on the stochastic jammed packing of soft spheres" };
 	MIN_TAGS		{	"rhythm, generator"		};
 	MIN_AUTHOR		{	"Daniel Bennett"			};
-	MIN_RELATED		{	"phasor~" };
+	MIN_RELATED		{	"metro" };
 
 	jammedPacking(const atoms& args = {})
 	{
