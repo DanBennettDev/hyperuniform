@@ -148,25 +148,25 @@ public:
 						else {
 							//otherwise get softness values ready for normal operation
 							for (auto &c : _candidateList) {
-								auto softness = input.samples((c.speciesNo * 2) + 1)[frame];
-								softness = softness < 1.0 ? softness : 1.0;
-								softness = softness > 0 ? softness : 0.0;
-								c.softness = softness;
+								float softness = (float)input.samples((size_t)((c.speciesNo * 2) + 1))[frame];
+								softness = softness < 1.f ? softness : 1.f;
+								softness = softness > 0.f ? softness : 0.f;
+								c.softness = (float)softness;
 							}
 						}
 					}
 				} else {
 					// if drive is in nudge mode
 					for (auto &c : _candidateList) {
-						auto softness = input.samples((c.speciesNo * 2) + 1)[frame];
-						softness = softness < 1.0 ? softness : 1.0;
-						softness = softness > 0 ? softness : 0.0;
+						float softness = (float)input.samples((c.speciesNo * 2) + 1)[frame];
+						softness = softness < 1.f ? softness : 1.f;
+						softness = softness > 0.f ? softness : 0.f;
 						c.softness = softness;
 
-						auto drive = input.samples(c.speciesNo * 2)[frame];
-						drive = drive < 1.0 ? drive : 1.0;
-						drive = drive > 0 ? drive : 0.0;
-						c.driveEvent = drive;
+						float drive = (float)input.samples(c.speciesNo * 2)[frame];
+						drive = drive < 1.f ? drive : 1.f;
+						drive = drive > 0.f ? drive : 0.f;
+						c.driveEvent = (float)drive;
 					}
 
 				}
@@ -176,20 +176,20 @@ public:
 					auto activeVoice = _lastNSpheres.back().speciesNo;
 					//_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
 					_triggers[activeVoice] = _trigLen;
-					auto expected = _currMarker / (DEFAULTWIDTH * 2);
+					auto expected = _currMarker / (DEFAULTWIDTH * 2.f);
 					auto received = counter;
 					counter++;
 				}
 
 				for (int channel = 0; channel < _sphereSpecies.size(); channel++) {
-					_prevIn[channel] = input.samples(channel)[frame];
+					_prevIn[channel] = (float)input.samples(channel)[frame];
 
-					if (_triggers[channel] > 0) { 
-						output.samples(channel)[frame] = 1;
+					if (_triggers[channel] > 0.f) { 
+						output.samples(channel)[frame] = 1.f;
 						_triggers[channel] --; 
 					}
 					else {
-						output.samples(channel)[frame] = 0;
+						output.samples(channel)[frame] = 0.f;
 					}
 						
 						//output.samples(channel)[frame] = _speciesActive[channel];
@@ -212,7 +212,7 @@ public:
 	message<> setDiameter{ this, "setDiameter",
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size() && (float)args[1] > 0) {
-			float samples = ((float)args[1] * samplerate())/1000.f;
+			float samples = ((float)args[1] * (float)samplerate())/1000.f;
 			_sphereSpecies[args[0]].diameter = samples;
 			updateCandidates();
 		}
