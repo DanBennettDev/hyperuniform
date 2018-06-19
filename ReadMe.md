@@ -4,7 +4,7 @@
 
 - A signal rate, "stochastic" rhythm generator. 
 
-- An impressionistic take on "hyperuniformity in the disordered, jammed, packing of soft spheres" as outlined in [this paper](https://arxiv.org/pdf/1402.6058). (As to why "impressionistic" see the section "Hyperuniform" below.)
+- An impressionistic take on the idea of "hyperuniformity in the disordered, jammed, packing of soft spheres" as outlined in [this paper](https://arxiv.org/pdf/1402.6058). (As to why "impressionistic" see the section "Hyperuniform" below.)
 
 ## DISCLAIMER
 Sorry - the MAX patch is currently a bit cryptic and weird, and nothing is documented very well. I put this together very quickly and I have no time over the next few weeks to make it better. If you are lost, apologies, and please bear with me, I'll improve it when I have time. My current research is not in computer music and I have a couple of other projects I need to finish up more urgently.
