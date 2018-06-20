@@ -32,7 +32,7 @@ private:
 		float softness{ 0.0f };
 		float driveEvent{ 0.0f };
 		float probability{ 0.f };
-		INT64 marker{ 0 };
+		int_least64_t marker{ 0 };
 	};
 
 	vector<softSphere> _lastNSpheres;
@@ -46,7 +46,7 @@ private:
 	int _drive{ 0 };
 
 	vector<softSphere> _candidateList;
-	INT64 _currMarker{ 0 };
+	int_least64_t _currMarker{ 0 };
 	float _softnessExponent{ 2 };
 	int counter{ 0 };
 
@@ -310,7 +310,7 @@ public:
 	{
 		float resistance = 0;
 		for (auto s : _lastNSpheres) {
-			INT64 distance = _currMarker - s.marker;
+			int_least64_t distance = _currMarker - s.marker;
 			resistance += placementResistance(thisDiameter, s.diameter, thissoftness,
 				s.softness, driveEvent, (float)distance, _softnessExponent);
 		}
