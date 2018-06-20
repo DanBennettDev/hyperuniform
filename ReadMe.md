@@ -51,9 +51,9 @@ You will also need to install a recent version of [CMake](https://cmake.org/down
 
 ## Building
 
-0. Clone from Github, into Max's Packages folder.
-   The *Packages* folder can be found inside of your *Max 7* or *Max 8* folder that inside of your user's *Documents* folder.
-1. In the Terminal or Console app of your choice, change directories (cd) into the hyperuniform folder you cloned/installed in step 0.
+0. Clone this repo from Github, into Max's Packages folder.
+   The *Packages* folder can be found inside of your *Max 7* or *Max 8* folder that is inside of your user's *Documents* folder.
+1. In the Terminal or Console app of your choice, change directories (cd) into the `hyperuniform` folder you cloned/installed in step 0.
 2. `mkdir build` to create a folder with your various build files
 3. `cd build` to put yourself into that folder
 4. Now you can generate the projects for your choosen build environment:
