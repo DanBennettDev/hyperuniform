@@ -9,6 +9,8 @@
 ### DISCLAIMER
 Sorry - the MAX patch is currently a bit cryptic and weird, and nothing is documented very well. I put this together very quickly and I will have no time over the next few weeks to make it easier to understand. It isn't a complicated algorithm, but the reasoning, controls and possibilities might be opaque. If you are lost, then accept my apologies, and please bear with me, I'll improve this when I have time. My current research is not in computer music and I have a couple of other projects I need to finish up more urgently.
 
+Warning: compiling currently seems sketchy on mac - one compiler has had problems getting this to work. I'm working through those issues at present.
+
 # What now?
 This is a stochastic rhythm generator, which I think produces quite musically pleasing results. 
 
