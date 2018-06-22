@@ -4,7 +4,6 @@ sysbuild
 *.suo
 *.opensdf
 log.txt
-externals
 extensions
 support
 build
