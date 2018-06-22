@@ -84,10 +84,10 @@ public:
 			_trigLen = TRIGGERWIDTH;
 			_triggers.push_back(0);
 
-			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) drive input " + voice));
-			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) softness input " + voice));
+			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) drive input " + std::to_string(voice)));
+			_ins.push_back(std::make_unique<inlet<>>(this, "(signal) softness input " + std::to_string(voice)));
 
-			_outs.push_back(std::make_unique<outlet<>>(this, "(signal) signal output " + voice, "signal"));
+			_outs.push_back(std::make_unique<outlet<>>(this, "(signal) signal output " + std::to_string(voice), "signal"));
 
 		}
 
@@ -176,8 +176,6 @@ public:
 					auto activeVoice = _lastNSpheres.back().speciesNo;
 					//_speciesActive[activeVoice] = _speciesActive[activeVoice] > 0.5 ? 0 : 1;
 					_triggers[activeVoice] = _trigLen;
-					auto expected = _currMarker / (DEFAULTWIDTH * 2.f);
-					auto received = counter;
 					counter++;
 				}
 
@@ -247,8 +245,8 @@ public:
 		MIN_FUNCTION{
 		if (args.size() >= 2 && (int)args[0] < _sphereSpecies.size()) {
 			float a = args[1];
-			a > 0 ? 0 : a;
-			a < 1 ? 1 : a;
+			a = a > 0 ? 0 : a;
+			a = a < 1 ? 1 : a;
 			_speciesAbundance[args[0]] = a;
 		}
 	return {};
@@ -400,7 +398,7 @@ public:
 	void updateCandidates() {
 		for (auto &candidate : _candidateList) {
 			for (auto species : _sphereSpecies) {
-				if (candidate.speciesNo = species.speciesNo) {
+				if (candidate.speciesNo == species.speciesNo) {
 					candidate.diameter = species.diameter;
 					candidate.softness = species.softness;
 				}
